@@ -1,7 +1,7 @@
-name: Build ZeroTier One - Static ARM64
+name: Build ZeroTier One - Static ARM64 (Cross-Compile)
 
 on:
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
   push:
     branches: [ main, master ]
 
@@ -12,19 +12,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install cross-compilation toolchain
         run: |
           sudo apt update
-          sudo apt install -y build-essential
+          sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
-      - name: Build static binary for ARM64
+      - name: Build static binary for ARM64 (cross-compile)
         run: |
-          make STATIC=1 ARCH=arm64 V=1
+          make \
+            STATIC=1 \
+            CXX=aarch64-linux-gnu-g++ \
+            CC=aarch64-linux-gnu-gcc \
+            AR=aarch64-linux-gnu-ar \
+            STRIP=aarch64-linux-gnu-strip \
+            V=1
 
-      - name: Verify binary
+      - name: Verify binary architecture
         run: |
           file zerotier-one
-          echo "Binary size: $(du -h zerotier-one)"
+          # Should show: ELF 64-bit LSB executable, ARM aarch64, statically linked
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
