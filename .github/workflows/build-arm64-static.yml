@@ -1,4 +1,4 @@
-name: Build ZeroTier One - Static ARM64 (Cross-Compile)
+name: Build ZeroTier One - Static ARM64 (Native in QEMU)
 
 on:
   workflow_dispatch:
@@ -12,29 +12,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install cross-compilation toolchain
-        run: |
-          sudo apt update
-          sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+      - name: Set up ARM64 environment with QEMU
+        uses: uraimo/run-on-arch-action@v2.5.0
+        id: run-on-arch
+        with:
+          arch: aarch64
+          distro: debian12
+          run: |
+            # 安装编译依赖
+            apt update
+            apt install -y build-essential git
 
-      - name: Build static binary for ARM64 (cross-compile)
-        run: |
-          make \
-            STATIC=1 \
-            CXX=aarch64-linux-gnu-g++ \
-            CC=aarch64-linux-gnu-gcc \
-            AR=aarch64-linux-gnu-ar \
-            STRIP=aarch64-linux-gnu-strip \
-            V=1
+            # 编译 ZeroTier（原生 ARM64）
+            make STATIC=1 V=1
 
-      - name: Verify binary architecture
-        run: |
-          file zerotier-one
-          # Should show: ELF 64-bit LSB executable, ARM aarch64, statically linked
+            # 验证
+            file zerotier-one
+            ./zerotier-one -v
+
+            # 复制到共享目录
+            cp zerotier-one /tmp/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: zerotier-one-arm64-static
-          path: ./zerotier-one
+          path: /tmp/zerotier-one
           retention-days: 7
